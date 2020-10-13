@@ -1,18 +1,21 @@
 package co.edu.unal.tictactoe;
 
 import android.app.Activity;
-import android.app.Dialog;
 import android.content.DialogInterface;
-import android.graphics.Color;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 
 import edu.harding.tictactoe.TicTacToeGame;
@@ -22,8 +25,8 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
     //Represents the internal state of the game
     private TicTacToeGame mGame;
 
-    // Buttons making up the board
-    private Button[] mBoardButtons;
+    //View Making the board
+    private BoardView mBoardView;
 
     // Various text displayed
     private TextView mInfoTextView;
@@ -39,6 +42,12 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
     //Quit Button
     private Button quitButton;
 
+    //Sound Effects
+    MediaPlayer mHumanMediaPlayer;
+    MediaPlayer mComputerMediaPlayer;
+    private boolean mSoundOn = true;
+
+
     //Check if game is over
     private boolean mGameOver;
 
@@ -46,10 +55,63 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
     private int playerWins;
     private int machineWins;
 
+    //Keep track of who is playing
+    private char curplayer;
+
+    //SharedPreferences
+    private SharedPreferences mPrefs;
+
+    // Listen for touches on the board
+    private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+
+            // Determine which cell was touched
+            int col = (int) event.getX() / mBoardView.getBoardCellWidth();
+            int row = (int) event.getY() / mBoardView.getBoardCellHeight();
+            int pos = row * 3 + col;
+
+            if (!mGameOver && curplayer == TicTacToeGame.HUMAN_PLAYER && setMove(TicTacToeGame.HUMAN_PLAYER, pos)) {
+                if(mSoundOn)
+                    mHumanMediaPlayer.start();
+
+                //If no winner yet let the computer make a move
+                int winner = mGame.checkForWinner();
+                if (winner == 0) {
+                    curplayer = TicTacToeGame.COMPUTER_PLAYER;
+
+                    String text = "It's Android's turn.";
+                    mInfoTextView.setText(text);
+
+                    turnComputer();
+                } else
+                    endturn(winner);
+
+            }
+            // So we aren't notified of continued events when finger is moved
+            return false;
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mGame = new TicTacToeGame();
+
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        mSoundOn = mPrefs.getBoolean("sound", true);
+        String difficultyLevel = mPrefs.getString("difficulty_level",
+                getResources().getString(R.string.difficulty_harder));
+        if (difficultyLevel.equals(getResources().getString(R.string.difficulty_easy)))
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Easy);
+        else if (difficultyLevel.equals(getResources().getString(R.string.difficulty_harder)))
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Harder);
+        else
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Expert);
+
 
         newGameButton = (Button) findViewById(R.id.newGame);
         newGameButton.setOnClickListener(new View.OnClickListener() {
@@ -75,34 +137,66 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
             }
         });
 
-        mBoardButtons = new Button[TicTacToeGame.BOARD_SIZE];
-        mBoardButtons[0] = (Button) findViewById(R.id.one);
-        mBoardButtons[1] = (Button) findViewById(R.id.two);
-        mBoardButtons[2] = (Button) findViewById(R.id.three);
-        mBoardButtons[3] = (Button) findViewById(R.id.four);
-        mBoardButtons[4] = (Button) findViewById(R.id.five);
-        mBoardButtons[5] = (Button) findViewById(R.id.six);
-        mBoardButtons[6] = (Button) findViewById(R.id.seven);
-        mBoardButtons[7] = (Button) findViewById(R.id.eight);
-        mBoardButtons[8] = (Button) findViewById(R.id.nine);
-
         mInfoTextView = (TextView) findViewById(R.id.information);
         mInfoTextView2 = (TextView) findViewById(R.id.information2);
         mInfoTextView3 = (TextView) findViewById(R.id.information3);
+        mInfoTextView3.setText("");
 
         playerWins = 0;
         machineWins = 0;
 
-        mGame = new TicTacToeGame();
+        curplayer = TicTacToeGame.HUMAN_PLAYER;
+
+        mBoardView = findViewById(R.id.board);
+        mBoardView.setGame(mGame);
+
+        // Listen for touches on the board
+        mBoardView.setOnTouchListener(mTouchListener);
 
         startNewGame();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mHumanMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.human);
+        mComputerMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.pc);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mHumanMediaPlayer.release();
+        mComputerMediaPlayer.release();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RESULT_CANCELED){
+            mSoundOn = mPrefs.getBoolean("sound", true);
+
+            String difficultyLevel = mPrefs.getString("difficulty_level",
+                    getResources().getString(R.string.difficulty_harder));
+
+            if (difficultyLevel.equals(getResources().getString(R.string.difficulty_easy)))
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Easy);
+            else if (difficultyLevel.equals(getResources().getString(R.string.difficulty_harder)))
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Harder);
+            else
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Expert);
+
+            mInfoTextView2.setText(getDifficultyText());
+        }
+    }
+
     public void showDifficultyMenu(View v) {
-        PopupMenu popupMenu = new PopupMenu(this, v);
-        popupMenu.setOnMenuItemClickListener(this);
-        popupMenu.inflate(R.menu.difficulty_menu);
-        popupMenu.show();
+//        PopupMenu popupMenu = new PopupMenu(this, v);
+//        popupMenu.setOnMenuItemClickListener(this);
+//        popupMenu.inflate(R.menu.difficulty_menu);
+//        popupMenu.show();
+        startActivityForResult(new Intent(this, Settings.class), 0);
     }
 
     public void showQuitMenu() {
@@ -120,17 +214,17 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
 
     @Override
     public boolean onMenuItemClick(MenuItem menuItem) {
-        switch (menuItem.getItemId()){
+        switch (menuItem.getItemId()) {
             case R.id.easy:
-                Toast.makeText(AndroidTicTacToeActivity.this,"Easy Selected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(AndroidTicTacToeActivity.this, "Easy Selected", Toast.LENGTH_SHORT).show();
                 mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Easy);
                 break;
             case R.id.hard:
-                Toast.makeText(this,"Hard Selected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Hard Selected", Toast.LENGTH_SHORT).show();
                 mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Harder);
                 break;
             case R.id.expert:
-                Toast.makeText(this,"Expert Selected", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Expert Selected", Toast.LENGTH_SHORT).show();
                 mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Expert);
                 break;
             default:
@@ -144,75 +238,63 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
         mGame.clearBoard();
         mGameOver = false;
 
-        // Reset all buttons
-        int i = 0;
-        for (Button mBoardButton : mBoardButtons) {
-            mBoardButton.setText("");
-            mBoardButton.setEnabled(true);
-            mBoardButton.setOnClickListener(new ButtonClickListener(i++));
-        }
+        mBoardView.invalidate();   // Redraw the board
 
+        curplayer = TicTacToeGame.HUMAN_PLAYER;
         String text = "You go first.";
         mInfoTextView.setText(text);
         mInfoTextView2.setText(getDifficultyText());
     }
 
-    private String getDifficultyText(){
-        if(mGame.getDifficultyLevel() == TicTacToeGame.DifficultyLevel.Easy){
+    private String getDifficultyText() {
+        if (mGame.getDifficultyLevel() == TicTacToeGame.DifficultyLevel.Easy) {
             return "Easy";
-        } else if(mGame.getDifficultyLevel() == TicTacToeGame.DifficultyLevel.Harder){
+        } else if (mGame.getDifficultyLevel() == TicTacToeGame.DifficultyLevel.Harder) {
             return "Hard";
         } else {
             return "Expert";
         }
     }
 
-    private class ButtonClickListener implements View.OnClickListener {
-        int location;
-
-        public ButtonClickListener(int location) {
-            this.location = location;
+    private boolean setMove(char player, int location) {
+        if (mGame.setMove(player, location)) {
+            mBoardView.invalidate(); // Redraw the board
+            return true;
         }
+        return false;
+    }
 
-        @Override
-        public void onClick(View view) {
-            if (mBoardButtons[location].isEnabled() && !mGameOver) {
-                setMove(TicTacToeGame.HUMAN_PLAYER, location);
+    private void endturn(int winner) {
+        String text;
 
-                //If no winner yet let the computer make a move
+        if (winner == 0) {
+            text = "It's your turn.";
+            curplayer = TicTacToeGame.HUMAN_PLAYER;
+        } else if (winner == 1)
+            text = "It's a tie!";
+        else if (winner == 2)
+            text = mPrefs.getString("victory_message", getResources().getString(R.string.result_human_wins));
+        else
+            text = "Android won!";
+
+        mInfoTextView.setText(text);
+        mGameOver = winner != 0;
+    }
+
+    private void turnComputer() {
+        Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            public void run() {
+
+                int move = mGame.getComputerMove();
+                setMove(TicTacToeGame.COMPUTER_PLAYER, move);
+                if(mSoundOn)
+                    mComputerMediaPlayer.start();
+
                 int winner = mGame.checkForWinner();
-                String text;
-                if (winner == 0) {
-                    text = "It's Android's turn.";
-                    mInfoTextView.setText(text);
 
-                    int move = mGame.getComputerMove();
-                    setMove(TicTacToeGame.COMPUTER_PLAYER, move);
-                    winner = mGame.checkForWinner();
-                }
-
-                if (winner == 0)
-                    text = "It's your turn.";
-                else if (winner == 1)
-                    text = "It's a tie!";
-                else if (winner == 2)
-                    text = "You won!";
-                else
-                    text = "Android won!";
-
-                mInfoTextView.setText(text);
-                mGameOver = winner != 0;
+                endturn(winner);
             }
-        }
-
-        private void setMove(char player, int location) {
-            mGame.setMove(player, location);
-            mBoardButtons[location].setEnabled(false);
-            mBoardButtons[location].setText(String.valueOf(player));
-            if (player == TicTacToeGame.HUMAN_PLAYER)
-                mBoardButtons[location].setTextColor(Color.rgb(0, 200, 0));
-            else
-                mBoardButtons[location].setTextColor(Color.rgb(200, 0, 0));
-        }
+        }, 1000);
     }
 }

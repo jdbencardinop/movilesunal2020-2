@@ -108,6 +108,7 @@ public class TicTacToeGame {
                     char curr = mBoard[i];
                     mBoard[i] = COMPUTER_PLAYER;
                     if (checkForWinner() == 3) {
+                        mBoard[i] = curr;
                         return i;
                     } else
                         mBoard[i] = curr;
@@ -122,7 +123,7 @@ public class TicTacToeGame {
                     char curr = mBoard[i];   // Save the current number
                     mBoard[i] = HUMAN_PLAYER;
                     if (checkForWinner() == 2) {
-                        mBoard[i] = COMPUTER_PLAYER;
+                        mBoard[i] = curr;
                         return i;
                     } else
                         mBoard[i] = curr;
@@ -137,7 +138,7 @@ public class TicTacToeGame {
 
         //System.out.println("Computer is moving to " + (move + 1));
 
-        mBoard[move] = COMPUTER_PLAYER;
+//        mBoard[move] = COMPUTER_PLAYER;
         return move;
     }
 
@@ -160,8 +161,12 @@ public class TicTacToeGame {
      * @param player   - The HUMAN_PLAYER or COMPUTER_PLAYER
      * @param location - The location (0-8) to place the move
      */
-    public void setMove(char player, int location) {
-        mBoard[location] = player;
+    public boolean setMove(char player, int location) {
+        if (location >= 0 && location <= 8 && mBoard[location] == OPEN_SPOT) {
+            mBoard[location] = player;
+            return true;
+        }
+        return false;
     }
 
     public DifficultyLevel getDifficultyLevel() {
@@ -170,5 +175,9 @@ public class TicTacToeGame {
 
     public void setDifficultyLevel(DifficultyLevel difficultyLevel) {
         mDifficultyLevel = difficultyLevel;
+    }
+
+    public char getBoardOccupant(int i) {
+        return mBoard[i];
     }
 }
