@@ -65,7 +65,7 @@
 
             <Button
                 android:id="@+id/difficulty"
-                android:layout_width="wrap_content"
+                android:layout_width="169dp"
                 android:layout_height="120dp"
                 android:text="@string/change_difficulty" />
 

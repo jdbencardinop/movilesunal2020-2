@@ -23,6 +23,8 @@ public class BoardView extends View {
 
     private Paint mPaint;
 
+    private int color = Color.LTGRAY;
+
     private TicTacToeGame mGame;
 
     public BoardView(Context context) {
@@ -50,7 +52,7 @@ public class BoardView extends View {
         int boardHeight = getHeight();
 
         // Make thick, light gray lines
-        mPaint.setColor(Color.LTGRAY);
+        mPaint.setColor(this.color);
         mPaint.setStrokeWidth(GRID_WIDTH);
 
         // Draw the two vertical board lines
@@ -106,6 +108,15 @@ public class BoardView extends View {
         mComputerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.computershape);
 
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    }
+
+    public int getColor() {
+        return color;
+    }
+
+    public void setColor(int color) {
+        this.color = color;
+        invalidate();
     }
 
 }

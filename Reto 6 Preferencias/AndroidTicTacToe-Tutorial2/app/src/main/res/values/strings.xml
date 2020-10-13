@@ -12,18 +12,14 @@
     <string name="_9">9</string>
     <string name="info">info</string>
     <string name="new_game">New Game</string>
-    <string name="change_difficulty">Settings</string>
+    <string name="change_difficulty">Change Difficulty</string>
     <string name="quit">Quit</string>
     <string name="easy">Easy</string>
     <string name="hard">Hard</string>
     <string name="expert">Expert</string>
-    <string name="difficulty_easy">Easy</string>
-    <string name="difficulty_harder">Hard</string>
-    <string name="difficulty_expert">Expert</string>
     <string name="no">No</string>
     <string name="yes">Yes</string>
     <string name="quit_question">Do you want to quit?</string>
-    <string name="result_human_wins">You won!</string>
     <string name="info2">info2</string>
     <string name="info3">info3</string>
 </resources>

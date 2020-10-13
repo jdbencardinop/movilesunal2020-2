@@ -2,9 +2,12 @@ package co.edu.unal.tictactoe;
 
 import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
@@ -42,6 +45,7 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
     //Sound Effects
     MediaPlayer mHumanMediaPlayer;
     MediaPlayer mComputerMediaPlayer;
+    private boolean mSoundOn = true;
 
 
     //Check if game is over
@@ -53,6 +57,9 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
 
     //Keep track of who is playing
     private char curplayer;
+
+    //SharedPreferences
+    private SharedPreferences mPrefs;
 
     // Listen for touches on the board
     private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
@@ -66,8 +73,8 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
             int pos = row * 3 + col;
 
             if (!mGameOver && curplayer == TicTacToeGame.HUMAN_PLAYER && setMove(TicTacToeGame.HUMAN_PLAYER, pos)) {
-
-                mHumanMediaPlayer.start();
+                if(mSoundOn)
+                    mHumanMediaPlayer.start();
 
                 //If no winner yet let the computer make a move
                 int winner = mGame.checkForWinner();
@@ -93,6 +100,18 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
         setContentView(R.layout.activity_main);
 
         mGame = new TicTacToeGame();
+
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+        mSoundOn = mPrefs.getBoolean("sound", true);
+        String difficultyLevel = mPrefs.getString("difficulty_level",
+                getResources().getString(R.string.difficulty_harder));
+        if (difficultyLevel.equals(getResources().getString(R.string.difficulty_easy)))
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Easy);
+        else if (difficultyLevel.equals(getResources().getString(R.string.difficulty_harder)))
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Harder);
+        else
+            mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Expert);
+
 
         newGameButton = (Button) findViewById(R.id.newGame);
         newGameButton.setOnClickListener(new View.OnClickListener() {
@@ -153,12 +172,31 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
         mComputerMediaPlayer.release();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RESULT_CANCELED){
+            mSoundOn = mPrefs.getBoolean("sound", true);
+
+            String difficultyLevel = mPrefs.getString("difficulty_level",
+                    getResources().getString(R.string.difficulty_harder));
+
+            if (difficultyLevel.equals(getResources().getString(R.string.difficulty_easy)))
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Easy);
+            else if (difficultyLevel.equals(getResources().getString(R.string.difficulty_harder)))
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Harder);
+            else
+                mGame.setDifficultyLevel(TicTacToeGame.DifficultyLevel.Expert);
+
+            mInfoTextView2.setText(getDifficultyText());
+        }
+    }
 
     public void showDifficultyMenu(View v) {
-        PopupMenu popupMenu = new PopupMenu(this, v);
-        popupMenu.setOnMenuItemClickListener(this);
-        popupMenu.inflate(R.menu.difficulty_menu);
-        popupMenu.show();
+//        PopupMenu popupMenu = new PopupMenu(this, v);
+//        popupMenu.setOnMenuItemClickListener(this);
+//        popupMenu.inflate(R.menu.difficulty_menu);
+//        popupMenu.show();
+        startActivityForResult(new Intent(this, Settings.class), 0);
     }
 
     public void showQuitMenu() {
@@ -235,7 +273,7 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
         } else if (winner == 1)
             text = "It's a tie!";
         else if (winner == 2)
-            text = "You won!";
+            text = mPrefs.getString("victory_message", getResources().getString(R.string.result_human_wins));
         else
             text = "Android won!";
 
@@ -250,7 +288,8 @@ public class AndroidTicTacToeActivity extends Activity implements PopupMenu.OnMe
 
                 int move = mGame.getComputerMove();
                 setMove(TicTacToeGame.COMPUTER_PLAYER, move);
-                mComputerMediaPlayer.start();
+                if(mSoundOn)
+                    mComputerMediaPlayer.start();
 
                 int winner = mGame.checkForWinner();
 
