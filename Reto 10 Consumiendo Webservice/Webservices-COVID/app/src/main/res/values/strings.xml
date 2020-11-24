@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Webservices-COVID</string>
+    <string name="selector_edad">Selector Rango de Edad</string>
+    <string name="selector_meses">Selector Rango de Meses</string>
+    <string name="buscar">Buscar</string>
+    <string name="casos_reportados">Casos Reportados</string>
+</resources>
